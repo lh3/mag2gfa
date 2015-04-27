@@ -171,20 +171,67 @@ void mag_g_destroy(mag_t *g)
 	free(g);
 }
 
+static inline uint64_t tid2idd(hash64_t *h, uint64_t tid)
+{
+	khint_t k = kh_get(64, h, tid);
+	assert(k != kh_end(h));
+	return kh_val(h, k);
+}
+
+void mag_g_print_gfa(const mag_t *g, int no_seq)
+{
+	int i, j, k;
+	kstring_t out = {0,0,0};
+
+	puts("H\tVN:Z:1.0");
+	for (i = 0; i < g->v.n; ++i) {
+		const magv_t *p = &g->v.a[i];
+		printf("S\t%lld:%lld\t", (long long)p->k[0], (long long)p->k[1]);
+		if (!no_seq) {
+			out.l = 0;
+			ks_resize(&out, p->len + 1);
+			for (j = 0; j < p->len; ++j)
+				out.s[out.l++] = "ACGT"[(int)p->seq[j] - 1];
+			fwrite(out.s, 1, out.l, stdout);
+			printf("\tRC:i:%d\tPD:Z:", p->nsr);
+			fwrite(p->cov, 1, p->len, stdout);
+			putchar('\n');
+		} else printf("*\tRC:i:%d\n", p->nsr);
+		for (j = 0; j < 2; ++j) {
+			const ku128_v *r = &p->nei[j];
+			for (k = 0; k < r->n; ++k) {
+				uint64_t tid = r->a[k].x, idd;
+				const magv_t *q;
+				if (tid < p->k[j]) continue; // skip "dual" edge
+				printf("L\t%lld:%lld\t%c\t", (long long)p->k[0], (long long)p->k[1], "-+"[j]);
+				idd = tid2idd(g->h, tid);
+				q = &g->v.a[idd>>1];
+				printf("\t%lld:%lld\t%c\t%dM\n", (long long)q->k[0], (long long)q->k[1], "-+"[(idd&1)^1], (int32_t)r->a[k].y);
+			}
+		}
+	}
+	free(out.s);
+}
+
 int main(int argc, char *argv[])
 {
 	mag_t *g;
-	int c, mag_out = 0;
+	int c, mag_out = 0, no_seq = 0;
 
-	while ((c = getopt(argc, argv, "m")) >= 0) {
+	while ((c = getopt(argc, argv, "mS")) >= 0) {
 		if (c == 'm') mag_out = 1;
+		else if (c == 'S') no_seq = 1;
 	}
 	if (argc == optind) {
-		fprintf(stderr, "Usage: mag2gfa [-m] <in.mag>\n");
+		fprintf(stderr, "Usage: mag2gfa [-Sm] <in.mag>\n");
+		fprintf(stderr, "Options:\n");
+		fprintf(stderr, "  -m    Fermi's native MAG format\n");
+		fprintf(stderr, "  -S    don't output sequence in GFA (effective w/o -m)\n");
 		return 1;
 	}
 	g = mag_g_read(argv[optind]);
-	mag_g_print(g);
+	if (mag_out) mag_g_print(g);
+	else mag_g_print_gfa(g, no_seq);
 	mag_g_destroy(g);
 	return 0;
 }
