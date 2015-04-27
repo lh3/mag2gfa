@@ -153,10 +153,6 @@ mag_t *mag_g_read(const char *fn)
 	return g;
 }
 
-/**************************
- * Basic graph operations *
- **************************/
-
 void mag_v_destroy(magv_t *v)
 {
 	free(v->nei[0].a); free(v->nei[1].a);
@@ -174,10 +170,6 @@ void mag_g_destroy(mag_t *g)
 	free(g->v.a);
 	free(g);
 }
-
-/**************
- * Key portal *
- **************/
 
 int main(int argc, char *argv[])
 {
