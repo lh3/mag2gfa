@@ -203,7 +203,7 @@ void mag_g_print_gfa(const mag_t *g, int no_seq)
 				uint64_t tid = r->a[k].x, idd;
 				const magv_t *q;
 				if (tid < p->k[j]) continue; // skip "dual" edge
-				printf("L\t%lld:%lld\t%c\t", (long long)p->k[0], (long long)p->k[1], "-+"[j]);
+				printf("L\t%lld:%lld\t%c", (long long)p->k[0], (long long)p->k[1], "-+"[j]);
 				idd = tid2idd(g->h, tid);
 				q = &g->v.a[idd>>1];
 				printf("\t%lld:%lld\t%c\t%dM\n", (long long)q->k[0], (long long)q->k[1], "-+"[(idd&1)^1], (int32_t)r->a[k].y);
